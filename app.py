@@ -10,6 +10,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Create database base class
 class Base(DeclarativeBase):
@@ -37,8 +38,16 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "file_storage")
 app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max upload size
 
-# Ensure upload folder exists
+# Backup configuration
+app.config["BACKUP_TEMP_DIR"] = os.path.join(os.getcwd(), "backup_temp")
+app.config["DEFAULT_BACKUP_INTERVAL"] = 60  # Default backup interval in minutes
+app.config["ALLOWED_BACKUP_INTERVALS"] = [15, 30, 60, 360, 720, 1440]  # 15min, 30min, 1hr, 6hrs, 12hrs, 24hrs
+app.config["MAX_MONITORED_FOLDERS_PER_USER"] = 10
+app.config["MONITOR_ENABLED"] = True  # Can be toggled to disable background monitoring
+
+# Ensure necessary folders exist
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+os.makedirs(app.config["BACKUP_TEMP_DIR"], exist_ok=True)
 
 # Initialize extensions with app
 db.init_app(app)
@@ -49,7 +58,7 @@ login_manager.login_message_category = "info"
 # Import models and routes after initializing app to avoid circular imports
 with app.app_context():
     # Import models
-    from models import User, File, FileVersion
+    from models import User, File, FileVersion, MonitoredFolder, BackupJob, BackupLog
     
     # Create database tables
     db.create_all()
@@ -57,3 +66,5 @@ with app.app_context():
     # Import and register routes
     from routes import register_routes
     register_routes(app)
+    
+    logger.info("Application initialized successfully")
