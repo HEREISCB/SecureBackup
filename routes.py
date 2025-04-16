@@ -259,23 +259,49 @@ def register_routes(app):
     @app.route('/delete/<int:file_id>', methods=['POST'])
     @login_required
     def delete_file(file_id):
-        file = File.query.filter_by(id=file_id, user_id=current_user.id, is_deleted=False).first_or_404()
-        file.is_deleted = True
+        file = File.query.filter_by(id=file_id, user_id=current_user.id).first_or_404()
+        
+        # If it's a regular form submission, handle with redirect
+        if not request.is_json:
+            file.is_deleted = True
+            db.session.commit()
+            flash(f'File {file.original_filename} has been deleted.', 'success')
+            return redirect(url_for('dashboard'))
+        
+        # For AJAX requests, just mark as deleted and return JSON response
+        file.is_deleted = True if not file.is_deleted else False
         db.session.commit()
         
-        flash(f'File {file.original_filename} has been deleted.', 'success')
-        return redirect(url_for('dashboard'))
+        status = "deleted" if file.is_deleted else "active"
+        
+        return jsonify({
+            'success': True, 
+            'status': status,
+            'message': f'File {file.original_filename} has been marked as {status}.'
+        })
 
 
     @app.route('/restore/<int:file_id>', methods=['POST'])
     @login_required
     def restore_file(file_id):
-        file = File.query.filter_by(id=file_id, user_id=current_user.id, is_deleted=True).first_or_404()
+        file = File.query.filter_by(id=file_id, user_id=current_user.id).first_or_404()
+        
+        # If it's a regular form submission, handle with redirect
+        if not request.is_json:
+            file.is_deleted = False
+            db.session.commit()
+            flash(f'File {file.original_filename} has been restored.', 'success')
+            return redirect(url_for('dashboard'))
+        
+        # For AJAX requests, toggle the restored status and return JSON response
         file.is_deleted = False
         db.session.commit()
         
-        flash(f'File {file.original_filename} has been restored.', 'success')
-        return redirect(url_for('dashboard'))
+        return jsonify({
+            'success': True, 
+            'status': 'restored',
+            'message': f'File {file.original_filename} has been restored.'
+        })
 
 
     @app.route('/restore-version/<int:version_id>', methods=['POST'])
