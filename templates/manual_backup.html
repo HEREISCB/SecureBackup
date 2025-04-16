@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Manual Backup - SecureBackup{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm fade-in">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">
+                            <i class="fas fa-sync-alt me-2 text-success"></i>Manual Backup
+                        </h3>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if form.folder_id.choices %}
+                        <p class="mb-4">Create a manual backup for one of your monitored folders to backup all new or modified files.</p>
+                        
+                        <form method="post" action="{{ url_for('manual_backup') }}">
+                            {{ form.hidden_tag() }}
+                            
+                            <div class="mb-3">
+                                <label for="folder_id" class="form-label">Select Folder to Backup</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-folder-open"></i></span>
+                                    {{ form.folder_id(class="form-control") }}
+                                </div>
+                                {% if form.folder_id.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.folder_id.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="name" class="form-label">Backup Job Name</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-tag"></i></span>
+                                    {{ form.name(class="form-control", placeholder="Enter a descriptive name for this backup") }}
+                                </div>
+                                {% if form.name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.name.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="d-grid">
+                                {{ form.submit(class="btn btn-success btn-lg") }}
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-folder-open fa-4x mb-3 text-muted"></i>
+                            <h4>No Monitored Folders Available</h4>
+                            <p class="text-muted mb-4">You need to add at least one monitored folder before you can run a manual backup.</p>
+                            <a href="{{ url_for('monitored_folders') }}" class="btn btn-primary">
+                                <i class="fas fa-folder-plus me-2"></i>Add Monitored Folder
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- How It Works -->
+            <div class="card border-0 shadow-sm mt-4 fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">How Manual Backup Works</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3 mb-md-0 text-center">
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-folder-open fa-2x text-primary"></i>
+                            </div>
+                            <h5>1. Select Folder</h5>
+                            <p class="text-muted small">Choose one of your monitored folders to backup.</p>
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0 text-center">
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-search fa-2x text-success"></i>
+                            </div>
+                            <h5>2. Scan for Changes</h5>
+                            <p class="text-muted small">The system scans for new or modified files since the last backup.</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="rounded-circle bg-light d-inline-flex align-items-center justify-content-center mb-3" style="width: 80px; height: 80px;">
+                                <i class="fas fa-hdd fa-2x text-info"></i>
+                            </div>
+                            <h5>3. Create Backup</h5>
+                            <p class="text-muted small">All detected changes are backed up with version tracking.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4 mb-0">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <p class="mb-0">Manual backups are useful when you've made important changes to files and want to create an immediate backup without waiting for the scheduled interval.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-generate job name when folder is selected
+    document.addEventListener('DOMContentLoaded', function() {
+        const folderSelect = document.getElementById('folder_id');
+        const nameInput = document.getElementById('name');
+        
+        if (folderSelect && nameInput) {
+            folderSelect.addEventListener('change', function() {
+                const selectedOption = folderSelect.options[folderSelect.selectedIndex];
+                nameInput.value = `Manual backup of ${selectedOption.text} - ${new Date().toLocaleString()}`;
+            });
+            
+            // Set initial value if not already set
+            if (!nameInput.value && folderSelect.selectedIndex >= 0) {
+                const selectedOption = folderSelect.options[folderSelect.selectedIndex];
+                nameInput.value = `Manual backup of ${selectedOption.text} - ${new Date().toLocaleString()}`;
+            }
+        }
+    });
+</script>
+{% endblock %}

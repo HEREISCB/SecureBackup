@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Job Details - SecureBackup{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Job Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-2 fade-in">
+                <i class="fas fa-tasks me-2"></i>Backup Job Details
+            </h1>
+            <p class="text-muted fade-in">
+                {{ job.name }}
+                <span class="ms-2">
+                    {% if job.status == 'completed' %}
+                        <span class="badge bg-success">Completed</span>
+                    {% elif job.status == 'failed' %}
+                        <span class="badge bg-danger">Failed</span>
+                    {% elif job.status == 'running' %}
+                        <span class="badge bg-primary">Running</span>
+                    {% else %}
+                        <span class="badge bg-warning">Pending</span>
+                    {% endif %}
+                </span>
+            </p>
+        </div>
+        <a href="{{ url_for('backup_jobs') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Jobs
+        </a>
+    </div>
+
+    <!-- Job Details -->
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Job Summary -->
+            <div class="card border-0 shadow-sm mb-4 fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Job Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Job ID</h6>
+                            <p>{{ job.id }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Status</h6>
+                            <p>
+                                {% if job.status == 'completed' %}
+                                    <span class="text-success"><i class="fas fa-check-circle me-2"></i>Completed</span>
+                                {% elif job.status == 'failed' %}
+                                    <span class="text-danger"><i class="fas fa-times-circle me-2"></i>Failed</span>
+                                {% elif job.status == 'running' %}
+                                    <span class="text-primary"><i class="fas fa-sync-alt fa-spin me-2"></i>Running</span>
+                                {% else %}
+                                    <span class="text-warning"><i class="fas fa-clock me-2"></i>Pending</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Created</h6>
+                            <p>{{ job.created_at.strftime('%b %d, %Y %H:%M:%S') }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Last Updated</h6>
+                            <p>{{ job.updated_at.strftime('%b %d, %Y %H:%M:%S') }}</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Type</h6>
+                            <p>
+                                {% if job.is_manual %}
+                                    <span class="badge bg-warning">Manual Backup</span>
+                                {% else %}
+                                    <span class="badge bg-info">Automatic Backup</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-muted">Duration</h6>
+                            <p>
+                                {% if job.status == 'completed' %}
+                                    {{ (job.updated_at - job.created_at).total_seconds()|round|int }} seconds
+                                {% elif job.status == 'running' %}
+                                    Running for {{ (now - job.created_at).total_seconds()|round|int }} seconds
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Backup Logs -->
+            <div class="card border-0 shadow-sm mb-4 fade-in">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Backup Logs</h5>
+                    <span class="badge bg-secondary">{{ logs|length }} entries</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if logs %}
+                            {% for log in logs %}
+                                <div class="list-group-item">
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            {% if log.level == 'error' %}
+                                                <i class="fas fa-exclamation-circle text-danger"></i>
+                                            {% elif log.level == 'warning' %}
+                                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                            {% else %}
+                                                <i class="fas fa-info-circle text-info"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <div class="d-flex justify-content-between align-items-baseline">
+                                                <span class="
+                                                    {% if log.level == 'error' %}text-danger
+                                                    {% elif log.level == 'warning' %}text-warning
+                                                    {% endif %}
+                                                ">{{ log.message }}</span>
+                                                <small class="text-muted ms-3">{{ log.timestamp.strftime('%H:%M:%S') }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item text-center py-4">
+                                <i class="fas fa-file-alt fa-3x mb-3 text-muted"></i>
+                                <h6>No logs available</h6>
+                                <p class="text-muted small mb-0">No log entries were recorded for this backup job</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Files Backed Up -->
+            <div class="card border-0 shadow-sm mb-4 fade-in">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Files Backed Up</h5>
+                    <span class="badge bg-primary">{{ files|length }}</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% if files %}
+                            {% for file in files %}
+                                <div class="list-group-item">
+                                    <div class="d-flex align-items-center">
+                                        <div class="me-3">
+                                            {% if file.content_type.startswith('image/') %}
+                                                <i class="fas fa-file-image text-info"></i>
+                                            {% elif file.content_type.startswith('application/pdf') %}
+                                                <i class="fas fa-file-pdf text-danger"></i>
+                                            {% elif file.content_type.startswith('text/') %}
+                                                <i class="fas fa-file-alt text-secondary"></i>
+                                            {% elif file.content_type.startswith('application/msword') or file.content_type.startswith('application/vnd.openxmlformats-officedocument.wordprocessingml') %}
+                                                <i class="fas fa-file-word text-primary"></i>
+                                            {% elif file.content_type.startswith('application/vnd.ms-excel') or file.content_type.startswith('application/vnd.openxmlformats-officedocument.spreadsheetml') %}
+                                                <i class="fas fa-file-excel text-success"></i>
+                                            {% else %}
+                                                <i class="fas fa-file text-secondary"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div class="flex-grow-1 overflow-hidden">
+                                            <div class="text-truncate">{{ file.original_filename }}</div>
+                                            <small class="text-muted d-block">{{ file.updated_at.strftime('%b %d, %Y %H:%M') }}</small>
+                                        </div>
+                                        <div>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end">
+                                                    <li><a class="dropdown-item" href="{{ url_for('download_file', file_id=file.id) }}"><i class="fas fa-download me-2"></i>Download</a></li>
+                                                    <li><a class="dropdown-item" href="{{ url_for('file_history', file_id=file.id) }}"><i class="fas fa-history me-2"></i>Version History</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="list-group-item text-center py-4">
+                                <i class="fas fa-file fa-3x mb-3 text-muted"></i>
+                                <h6>No files backed up</h6>
+                                <p class="text-muted small mb-0">
+                                    {% if job.status == 'completed' %}
+                                        No files were changed since the last backup
+                                    {% elif job.status == 'failed' %}
+                                        The backup job failed to complete
+                                    {% else %}
+                                        The backup job is still in progress
+                                    {% endif %}
+                                </p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if files|length > 5 %}
+                    <div class="card-footer bg-white text-center">
+                        <a href="{{ url_for('files') }}?search=job:{{ job.id }}" class="btn btn-sm btn-outline-primary">
+                            View All Files
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Quick Actions -->
+            <div class="card border-0 shadow-sm mb-4 fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('manual_backup') }}" class="btn btn-success">
+                            <i class="fas fa-sync-alt me-2"></i>Run New Backup
+                        </a>
+                        <a href="{{ url_for('files') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-file-alt me-2"></i>View All Files
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-refresh the page if the job is still running
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if job.status == 'running' or job.status == 'pending' %}
+            setTimeout(function() {
+                window.location.reload();
+            }, 5000);  // Refresh every 5 seconds
+        {% endif %}
+    });
+</script>
+{% endblock %}

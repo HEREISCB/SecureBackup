@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Backup Jobs - SecureBackup{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-2 fade-in">
+                <i class="fas fa-tasks me-2"></i>Backup Jobs
+            </h1>
+            <p class="text-muted fade-in">View and manage your automatic and manual backup jobs</p>
+        </div>
+        <a href="{{ url_for('manual_backup') }}" class="btn btn-success">
+            <i class="fas fa-sync-alt me-2"></i>Run Manual Backup
+        </a>
+    </div>
+    
+    <!-- Search and Filter Controls -->
+    <div class="card border-0 shadow-sm mb-4 fade-in">
+        <div class="card-body">
+            <form method="get" action="{{ url_for('backup_jobs') }}" class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        {{ form.query(class="form-control", placeholder="Search jobs...") }}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-filter"></i></span>
+                        {{ form.status(class="form-control") }}
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-tags"></i></span>
+                        {{ form.source_type(class="form-control") }}
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-filter me-2"></i>Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Jobs List -->
+    <div class="card border-0 shadow-sm fade-in">
+        <div class="card-header bg-white">
+            <h5 class="mb-0">Your Backup Jobs</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 5%;">Status</th>
+                            <th style="width: 40%;">Name</th>
+                            <th style="width: 20%;">Created</th>
+                            <th style="width: 10%;">Type</th>
+                            <th style="width: 25%;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if jobs %}
+                            {% for job in jobs %}
+                                <tr>
+                                    <td>
+                                        {% if job.status == 'completed' %}
+                                            <i class="fas fa-check-circle text-success" title="Completed"></i>
+                                        {% elif job.status == 'failed' %}
+                                            <i class="fas fa-times-circle text-danger" title="Failed"></i>
+                                        {% elif job.status == 'running' %}
+                                            <i class="fas fa-sync-alt fa-spin text-primary" title="Running"></i>
+                                        {% else %}
+                                            <i class="fas fa-clock text-warning" title="Pending"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="d-inline-block text-truncate" style="max-width: 300px;">
+                                            {{ job.name }}
+                                        </span>
+                                    </td>
+                                    <td>{{ job.created_at.strftime('%b %d, %Y %H:%M') }}</td>
+                                    <td>
+                                        {% if job.is_manual %}
+                                            <span class="badge bg-warning">Manual</span>
+                                        {% else %}
+                                            <span class="badge bg-info">Automatic</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('backup_job_detail', job_id=job.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye me-1"></i>View Details
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4">
+                                    <i class="fas fa-tasks fa-3x mb-3 text-muted"></i>
+                                    <h5>No backup jobs found</h5>
+                                    <p class="text-muted">
+                                        {% if form.query.data or form.status.data != 'all' or form.source_type.data != 'all' %}
+                                            No jobs match your search criteria. Try changing your filters.
+                                        {% else %}
+                                            You haven't run any backup jobs yet. Add a monitored folder or run a manual backup to get started.
+                                        {% endif %}
+                                    </p>
+                                    <div class="mt-3">
+                                        <a href="{{ url_for('monitored_folders') }}" class="btn btn-outline-primary me-2">
+                                            <i class="fas fa-folder-plus me-2"></i>Add Folder
+                                        </a>
+                                        <a href="{{ url_for('manual_backup') }}" class="btn btn-success">
+                                            <i class="fas fa-sync-alt me-2"></i>Manual Backup
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Backup Job Information -->
+    <div class="row mt-5">
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Automatic Backups</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <i class="fas fa-robot fa-2x text-info"></i>
+                        </div>
+                        <div>
+                            <h5>How Automatic Backups Work</h5>
+                            <p class="text-muted">Automatic backups run according to the schedule you set for each monitored folder. The system checks for file changes and backs up any modified or new files.</p>
+                        </div>
+                    </div>
+                    <div class="alert alert-light border">
+                        <strong>Benefits:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Continuous protection without manual intervention</li>
+                            <li>Regular, scheduled backups of important files</li>
+                            <li>Automated version history tracking</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Manual Backups</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex mb-3">
+                        <div class="me-3">
+                            <i class="fas fa-user-clock fa-2x text-warning"></i>
+                        </div>
+                        <div>
+                            <h5>How Manual Backups Work</h5>
+                            <p class="text-muted">Manual backups allow you to trigger an immediate backup of a monitored folder. This is useful when you've made important changes and want to back them up right away.</p>
+                        </div>
+                    </div>
+                    <div class="alert alert-light border">
+                        <strong>Benefits:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>Immediate backup when you need it</li>
+                            <li>Control over when backups are created</li>
+                            <li>Same version tracking as automatic backups</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

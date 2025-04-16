@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+
+{% block title %}Monitored Folders - SecureBackup{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-2 fade-in">
+                <i class="fas fa-folder-open me-2"></i>Monitored Folders
+            </h1>
+            <p class="text-muted fade-in">Manage folders that are automatically backed up</p>
+        </div>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFolderModal">
+            <i class="fas fa-folder-plus me-2"></i>Add Folder
+        </button>
+    </div>
+
+    <!-- Folders List -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">Your Monitored Folders</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Path</th>
+                                    <th>Status</th>
+                                    <th>Backup Interval</th>
+                                    <th>Files</th>
+                                    <th>Last Backup</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if folders %}
+                                    {% for folder in folders %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-folder text-warning me-2"></i>
+                                                    <span>{{ folder.name }}</span>
+                                                </div>
+                                            </td>
+                                            <td><small class="text-muted">{{ folder.path }}</small></td>
+                                            <td>
+                                                {% if folder.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if folder.backup_interval == 15 %}
+                                                    15 minutes
+                                                {% elif folder.backup_interval == 30 %}
+                                                    30 minutes
+                                                {% elif folder.backup_interval == 60 %}
+                                                    1 hour
+                                                {% elif folder.backup_interval == 360 %}
+                                                    6 hours
+                                                {% elif folder.backup_interval == 720 %}
+                                                    12 hours
+                                                {% elif folder.backup_interval == 1440 %}
+                                                    24 hours
+                                                {% else %}
+                                                    {{ folder.backup_interval }} minutes
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ folder_stats[folder.id].file_count }}</td>
+                                            <td>
+                                                {% if folder_stats[folder.id].last_backup %}
+                                                    {{ folder_stats[folder.id].last_backup.strftime('%b %d, %Y %H:%M') }}
+                                                {% else %}
+                                                    <span class="text-muted">Never</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <a href="{{ url_for('edit_folder', folder_id=folder.id) }}" class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    <button type="button" class="btn btn-sm btn-outline-success trigger-backup-btn" 
+                                                            data-folder-id="{{ folder.id }}" 
+                                                            data-folder-name="{{ folder.name }}">
+                                                        <i class="fas fa-sync-alt"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger delete-folder-btn" 
+                                                            data-folder-id="{{ folder.id }}" 
+                                                            data-folder-name="{{ folder.name }}">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">
+                                            <i class="fas fa-folder-open fa-3x mb-3 text-muted"></i>
+                                            <h5>No monitored folders</h5>
+                                            <p class="text-muted">Add a folder to start monitoring and automatically backing up files</p>
+                                            <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#addFolderModal">
+                                                <i class="fas fa-folder-plus me-2"></i>Add Folder
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- How It Works Section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm fade-in">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">How Automated Backup Works</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-4 mb-md-0 text-center">
+                            <div class="display-4 text-primary mb-3">
+                                <i class="fas fa-folder-plus"></i>
+                            </div>
+                            <h5>1. Add a Folder</h5>
+                            <p class="text-muted">Choose any folder on your system that contains important files you want to back up automatically.</p>
+                        </div>
+                        <div class="col-md-4 mb-4 mb-md-0 text-center">
+                            <div class="display-4 text-success mb-3">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <h5>2. Set Backup Interval</h5>
+                            <p class="text-muted">Choose how often you want the system to check for changes and create backups.</p>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <div class="display-4 text-info mb-3">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <h5>3. Automatic Protection</h5>
+                            <p class="text-muted">The system automatically detects changes and creates versioned backups of your files.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Folder Modal -->
+<div class="modal fade" id="addFolderModal" tabindex="-1" aria-labelledby="addFolderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addFolderModalLabel">Add Monitored Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{{ url_for('add_folder') }}" id="add-folder-form">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Folder Name</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-folder"></i></span>
+                            {{ form.name(class="form-control", placeholder="Enter a descriptive name") }}
+                        </div>
+                        {% if form.name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="path" class="form-label">Folder Path</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-folder-open"></i></span>
+                            {{ form.path(class="form-control", placeholder="Full path to the folder, e.g., /home/user/documents") }}
+                        </div>
+                        <div class="form-text">
+                            Enter the full absolute path to the folder you want to monitor
+                        </div>
+                        {% if form.path.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.path.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="backup_interval" class="form-label">Backup Interval</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-clock"></i></span>
+                            {{ form.backup_interval(class="form-control") }}
+                        </div>
+                        <div class="form-text">
+                            How often should the system check for changes and create backups
+                        </div>
+                        {% if form.backup_interval.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.backup_interval.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        {{ form.is_active(class="form-check-input") }}
+                        <label class="form-check-label" for="is_active">Active</label>
+                        <div class="form-text">
+                            If checked, this folder will be actively monitored
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Folder Confirmation Modal -->
+<div class="modal fade" id="deleteFolderModal" tabindex="-1" aria-labelledby="deleteFolderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteFolderModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the folder <strong id="delete-folder-name"></strong>?</p>
+                <p class="text-danger">This will remove the folder from monitoring, but will not delete any backed up files.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="delete-folder-form" method="post" action="">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trigger Backup Modal -->
+<div class="modal fade" id="triggerBackupModal" tabindex="-1" aria-labelledby="triggerBackupModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="triggerBackupModalLabel">Run Manual Backup</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Do you want to run a manual backup for folder <strong id="backup-folder-name"></strong>?</p>
+                <p>This will check for new or modified files and back them up.</p>
+                
+                <form id="backup-form" method="post" action="{{ url_for('manual_backup') }}">
+                    <input type="hidden" id="folder_id" name="folder_id" value="">
+                    <div class="mb-3">
+                        <label for="backup_name" class="form-label">Backup Job Name</label>
+                        <input type="text" class="form-control" id="backup_name" name="name" placeholder="Enter a name for this backup job">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" id="start-backup-btn">Start Backup</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Delete folder confirmation
+    document.querySelectorAll('.delete-folder-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const folderId = this.getAttribute('data-folder-id');
+            const folderName = this.getAttribute('data-folder-name');
+            
+            document.getElementById('delete-folder-name').textContent = folderName;
+            document.getElementById('delete-folder-form').action = "{{ url_for('delete_folder', folder_id=0) }}".replace('0', folderId);
+            
+            new bootstrap.Modal(document.getElementById('deleteFolderModal')).show();
+        });
+    });
+    
+    // Trigger backup
+    document.querySelectorAll('.trigger-backup-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const folderId = this.getAttribute('data-folder-id');
+            const folderName = this.getAttribute('data-folder-name');
+            
+            document.getElementById('backup-folder-name').textContent = folderName;
+            document.getElementById('folder_id').value = folderId;
+            document.getElementById('backup_name').value = `Manual backup of ${folderName}`;
+            
+            new bootstrap.Modal(document.getElementById('triggerBackupModal')).show();
+        });
+    });
+    
+    // Submit backup form
+    document.getElementById('start-backup-btn').addEventListener('click', function() {
+        document.getElementById('backup-form').submit();
+    });
+</script>
+{% endblock %}

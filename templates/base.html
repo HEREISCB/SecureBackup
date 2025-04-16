@@ -44,12 +44,28 @@
                         <li class="nav-item">
                             <a class="nav-link {% if request.path == '/dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">Dashboard</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/files' in request.path %}active{% endif %}" href="{{ url_for('files') }}">Files</a>
+                        </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle {% if '/backup' in request.path or '/monitored-folders' in request.path %}active{% endif %}" href="#" id="backupDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-sync-alt me-1"></i>Backup
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="backupDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('monitored_folders') }}"><i class="fas fa-folder-open me-2"></i>Monitored Folders</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('backup_jobs') }}"><i class="fas fa-tasks me-2"></i>Backup Jobs</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('manual_backup') }}"><i class="fas fa-sync-alt me-2"></i>Run Manual Backup</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fas fa-user-circle me-1"></i>{{ current_user.username }}
                             </a>
-                            <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
-                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
                             </ul>
                         </li>
                     {% else %}
@@ -89,7 +105,7 @@
         <div class="container">
             <div class="footer-content py-4">
                 <div>
-                    <p class="mb-0">&copy; 2023 SecureBackup. All rights reserved.</p>
+                    <p class="mb-0">&copy; 2025 SecureBackup. All rights reserved.</p>
                 </div>
                 <div class="footer-links">
                     <a href="#" class="footer-link">Privacy Policy</a>
