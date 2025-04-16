@@ -175,29 +175,46 @@
             </div>
             <div class="modal-body">
                 <form method="post" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" id="upload-form">
-                    {{ form.hidden_tag() }}
-                    
-                    <div class="mb-3">
-                        <label for="file" class="form-label">Select a file to upload</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-file"></i></span>
-                            {{ form.file(class="form-control") }}
-                        </div>
-                        <div class="form-text">
-                            Allowed file types: .txt, .pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png, .gif
-                        </div>
-                        {% if form.file.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.file.errors %}
-                                    {{ error }}
-                                {% endfor %}
+                    {% if form %}
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select a file to upload</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-file"></i></span>
+                                {{ form.file(class="form-control") }}
                             </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="d-grid">
-                        {{ form.submit(class="btn btn-primary") }}
-                    </div>
+                            <div class="form-text">
+                                Allowed file types: .txt, .pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png, .gif
+                            </div>
+                            {% if form.file.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.file.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {{ form.submit(class="btn btn-primary") }}
+                        </div>
+                    {% else %}
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select a file to upload</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-file"></i></span>
+                                <input type="file" name="file" class="form-control" required>
+                            </div>
+                            <div class="form-text">
+                                Allowed file types: .txt, .pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png, .gif
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Upload</button>
+                        </div>
+                    {% endif %}
                 </form>
             </div>
         </div>
@@ -214,27 +231,43 @@
             </div>
             <div class="modal-body">
                 <form method="post" action="{{ url_for('rename_file', file_id=0) }}" id="rename-form">
-                    {{ rename_form.hidden_tag() }}
-                    <input type="hidden" id="rename-file-id" name="file_id" value="">
-                    
-                    <div class="mb-3">
-                        <label for="filename" class="form-label">New Filename</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
-                            {{ rename_form.filename(class="form-control") }}
-                        </div>
-                        {% if rename_form.filename.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in rename_form.filename.errors %}
-                                    {{ error }}
-                                {% endfor %}
+                    {% if rename_form %}
+                        {{ rename_form.hidden_tag() }}
+                        <input type="hidden" id="rename-file-id" name="file_id" value="">
+                        
+                        <div class="mb-3">
+                            <label for="filename" class="form-label">New Filename</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
+                                {{ rename_form.filename(class="form-control") }}
                             </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="d-grid">
-                        {{ rename_form.submit(class="btn btn-primary") }}
-                    </div>
+                            {% if rename_form.filename.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in rename_form.filename.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            {{ rename_form.submit(class="btn btn-primary") }}
+                        </div>
+                    {% else %}
+                        <input type="hidden" id="rename-file-id" name="file_id" value="">
+                        
+                        <div class="mb-3">
+                            <label for="filename" class="form-label">New Filename</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
+                                <input type="text" name="filename" id="filename" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Rename</button>
+                        </div>
+                    {% endif %}
                 </form>
             </div>
         </div>

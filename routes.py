@@ -565,5 +565,6 @@ def register_routes(app):
             search_term=search_term,
             source_type=source_type,
             sort_by=sort_by,
-            rename_form=RenameFileForm()
+            rename_form=RenameFileForm(),
+            form=UploadFileForm()
         )

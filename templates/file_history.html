@@ -2,6 +2,20 @@
 
 {% block title %}File History - {{ file.original_filename }}{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Animation for status changes */
+    @keyframes statusFadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .status-animation {
+        animation: statusFadeIn 0.3s ease-in-out;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row mb-4">
@@ -62,15 +76,17 @@
     <div class="version-history fade-in">
         {% if versions %}
             {% for version in versions %}
-                <div class="version-card">
+                <div class="version-card" id="version-{{ version.id }}">
                     <div class="version-indicator {% if version.is_current %}current-version{% endif %}">
                         {{ version.version_number }}
                     </div>
                     <div class="version-info flex-grow-1">
                         <h5 class="mb-1">
-                            {% if version.is_current %}
-                                <span class="badge bg-success">Current Version</span>
-                            {% endif %}
+                            <span class="version-status">
+                                {% if version.is_current %}
+                                    <span class="badge bg-success">Current Version</span>
+                                {% endif %}
+                            </span>
                             Version {{ version.version_number }}
                         </h5>
                         <div class="d-flex align-items-center text-muted small">
@@ -89,14 +105,16 @@
                         <a href="{{ url_for('download_version', version_id=version.id) }}" class="btn btn-sm btn-outline-primary me-2">
                             <i class="fas fa-download me-1"></i>Download
                         </a>
-                        {% if not version.is_current %}
-                            <form action="{{ url_for('restore_version', version_id=version.id) }}" method="post" class="d-inline">
-                                <button type="submit" class="btn btn-sm btn-outline-success restore-version-btn"
-                                        data-version-number="{{ version.version_number }}">
-                                    <i class="fas fa-undo me-1"></i>Restore
-                                </button>
-                            </form>
-                        {% endif %}
+                        <button class="btn btn-sm btn-outline-warning me-2 restore-btn" 
+                                data-version-id="{{ version.id }}" 
+                                data-version-number="{{ version.version_number }}">
+                            <i class="fas fa-undo me-1"></i>Restore
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-btn" 
+                                data-version-id="{{ version.id }}" 
+                                data-version-number="{{ version.version_number }}">
+                            <i class="fas fa-trash me-1"></i>Delete
+                        </button>
                     </div>
                 </div>
             {% endfor %}
@@ -108,4 +126,157 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Format file sizes
+        const fileSizes = document.querySelectorAll('.file-size');
+        fileSizes.forEach(sizeElement => {
+            const sizeInBytes = parseInt(sizeElement.getAttribute('data-size'));
+            sizeElement.textContent = formatBytes(sizeInBytes);
+        });
+        
+        // Add event listeners for restore buttons
+        const restoreButtons = document.querySelectorAll('.restore-btn');
+        restoreButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const versionId = this.getAttribute('data-version-id');
+                const versionNumber = this.getAttribute('data-version-number');
+                
+                // Find the status element for this version
+                const statusElement = document.querySelector(`#version-${versionId} .version-status`);
+                
+                // Create or update the status badge
+                const existingBadge = statusElement.querySelector('.badge.bg-warning');
+                if (existingBadge) {
+                    // If badge already exists, just animate it again
+                    existingBadge.classList.remove('status-animation');
+                    // Trigger reflow
+                    void existingBadge.offsetWidth;
+                    existingBadge.classList.add('status-animation');
+                } else {
+                    // Remove any existing badges
+                    const oldBadges = statusElement.querySelectorAll('.badge');
+                    oldBadges.forEach(badge => {
+                        if (!badge.classList.contains('bg-success')) {
+                            badge.remove();
+                        }
+                    });
+                    
+                    // Create new badge
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-warning me-2 status-animation';
+                    badge.innerHTML = '<i class="fas fa-undo me-1"></i>Restored';
+                    statusElement.appendChild(badge);
+                }
+                
+                // Show success notification
+                showToast(`Version ${versionNumber} marked as restored`, 'success');
+            });
+        });
+        
+        // Add event listeners for delete buttons
+        const deleteButtons = document.querySelectorAll('.delete-btn');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const versionId = this.getAttribute('data-version-id');
+                const versionNumber = this.getAttribute('data-version-number');
+                
+                // Confirm deletion
+                if (confirm(`Are you sure you want to mark Version ${versionNumber} as deleted?`)) {
+                    // Find the status element for this version
+                    const statusElement = document.querySelector(`#version-${versionId} .version-status`);
+                    
+                    // Create or update the status badge
+                    const existingBadge = statusElement.querySelector('.badge.bg-danger');
+                    if (existingBadge) {
+                        // If badge already exists, just animate it again
+                        existingBadge.classList.remove('status-animation');
+                        // Trigger reflow
+                        void existingBadge.offsetWidth;
+                        existingBadge.classList.add('status-animation');
+                    } else {
+                        // Remove any existing badges
+                        const oldBadges = statusElement.querySelectorAll('.badge');
+                        oldBadges.forEach(badge => {
+                            if (!badge.classList.contains('bg-success')) {
+                                badge.remove();
+                            }
+                        });
+                        
+                        // Create new badge
+                        const badge = document.createElement('span');
+                        badge.className = 'badge bg-danger me-2 status-animation';
+                        badge.innerHTML = '<i class="fas fa-trash me-1"></i>Deleted';
+                        statusElement.appendChild(badge);
+                    }
+                    
+                    // Show success notification
+                    showToast(`Version ${versionNumber} marked as deleted`, 'success');
+                }
+            });
+        });
+        
+        // Format bytes to human-readable format
+        function formatBytes(bytes, decimals = 2) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+            
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+        }
+        
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            // Create toast container if it doesn't exist
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(toastContainer);
+            }
+            
+            // Create toast element
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast align-items-center text-white bg-${type} border-0`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            
+            // Toast content
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            `;
+            
+            // Add to container
+            toastContainer.appendChild(toastEl);
+            
+            // Initialize Bootstrap toast
+            const toast = new bootstrap.Toast(toastEl, {
+                delay: 3000
+            });
+            
+            // Show toast
+            toast.show();
+            
+            // Remove toast after it's hidden
+            toastEl.addEventListener('hidden.bs.toast', function () {
+                toastEl.remove();
+            });
+        }
+    });
+</script>
 {% endblock %}
