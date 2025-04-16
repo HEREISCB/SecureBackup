@@ -557,9 +557,10 @@ def register_routes(app):
         search_term = request.args.get('search', '')
         source_type = request.args.get('source_type', 'all')
         sort_by = request.args.get('sort_by', 'updated_desc')
+        show_deleted = request.args.get('show_deleted', 'true') == 'true'  # Default to showing deleted files
         
         # Build query
-        query = File.query.filter_by(user_id=current_user.id, is_deleted=False)
+        query = File.query.filter_by(user_id=current_user.id)
         
         # Apply filters
         if search_term:
@@ -591,6 +592,7 @@ def register_routes(app):
             search_term=search_term,
             source_type=source_type,
             sort_by=sort_by,
+            show_deleted=show_deleted,
             rename_form=RenameFileForm(),
             form=UploadFileForm()
         )

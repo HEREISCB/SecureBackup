@@ -117,7 +117,11 @@
                                     </td>
                                     <td>{{ file.updated_at.strftime('%b %d, %Y') }}</td>
                                     <td class="file-status" id="status-{{ file.id }}">
-                                        <!-- Status will be updated dynamically with JavaScript -->
+                                        {% if file.is_deleted %}
+                                            <span class="badge bg-danger">
+                                                <i class="fas fa-trash me-1"></i>Deleted
+                                            </span>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <div class="d-flex">
@@ -136,11 +140,11 @@
                                                     <li><button class="dropdown-item rename-btn" data-file-id="{{ file.id }}" data-file-name="{{ file.original_filename }}" data-bs-toggle="modal" data-bs-target="#renameModal"><i class="fas fa-edit me-2"></i>Rename</button></li>
                                                     <li><hr class="dropdown-divider"></li>
                                                     <li>
-                                                        <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post" class="d-inline">
-                                                            <button type="submit" class="dropdown-item text-danger delete-btn" data-file-name="{{ file.original_filename }}">
-                                                                <i class="fas fa-trash me-2"></i>Delete
-                                                            </button>
-                                                        </form>
+                                                        <button class="dropdown-item text-danger ajax-delete-btn" 
+                                                                data-file-id="{{ file.id }}" 
+                                                                data-file-name="{{ file.original_filename }}">
+                                                            <i class="fas fa-trash me-2"></i>Delete
+                                                        </button>
                                                     </li>
                                                 </ul>
                                             </div>
@@ -314,40 +318,99 @@
             filenameInput.value = fileName;
         });
         
-        // File delete confirmation
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
+        // AJAX Delete button handler
+        document.querySelectorAll('.ajax-delete-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const fileId = this.getAttribute('data-file-id');
                 const fileName = this.getAttribute('data-file-name');
-                if (!confirm(`Are you sure you want to delete "${fileName}"?`)) {
-                    e.preventDefault();
+                
+                if (confirm(`Are you sure you want to delete "${fileName}"?`)) {
+                    // Make AJAX request to mark file as deleted
+                    fetch(`/delete/${fileId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const statusCell = document.getElementById(`status-${fileId}`);
+                            
+                            // Create or update the status badge
+                            let badge = statusCell.querySelector('.badge.bg-danger');
+                            if (badge) {
+                                // If badge already exists, just animate it again
+                                badge.classList.remove('status-animation');
+                                void badge.offsetWidth; // Force reflow
+                                badge.classList.add('status-animation');
+                            } else {
+                                // Create new badge
+                                badge = document.createElement('span');
+                                badge.className = 'badge bg-danger status-animation';
+                                badge.innerHTML = '<i class="fas fa-trash me-1"></i>Deleted';
+                                statusCell.innerHTML = '';
+                                statusCell.appendChild(badge);
+                            }
+                            
+                            // Show success notification
+                            showToast(data.message, 'danger');
+                        } else {
+                            showToast('Error deleting file', 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        showToast('Error communicating with server', 'danger');
+                    });
                 }
             });
         });
         
-        // Restore file button handler
+        // AJAX Restore file button handler
         document.querySelectorAll('.restore-file-btn').forEach(button => {
             button.addEventListener('click', function() {
                 const fileId = this.getAttribute('data-file-id');
-                const statusCell = document.getElementById(`status-${fileId}`);
                 
-                // Create or update the status badge
-                let badge = statusCell.querySelector('.badge.bg-warning');
-                if (badge) {
-                    // If badge already exists, just animate it again
-                    badge.classList.remove('status-animation');
-                    void badge.offsetWidth; // Force reflow
-                    badge.classList.add('status-animation');
-                } else {
-                    // Create new badge
-                    badge = document.createElement('span');
-                    badge.className = 'badge bg-warning status-animation';
-                    badge.innerHTML = '<i class="fas fa-undo me-1"></i>Restored';
-                    statusCell.innerHTML = '';
-                    statusCell.appendChild(badge);
-                }
-                
-                // Show success notification
-                showToast('File marked as restored', 'warning');
+                // Make AJAX request to restore file
+                fetch(`/restore/${fileId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const statusCell = document.getElementById(`status-${fileId}`);
+                        
+                        // Create or update the status badge
+                        let badge = statusCell.querySelector('.badge');
+                        if (badge) {
+                            // Remove existing badge
+                            badge.remove();
+                        }
+                        
+                        // Create new badge
+                        badge = document.createElement('span');
+                        badge.className = 'badge bg-warning status-animation';
+                        badge.innerHTML = '<i class="fas fa-undo me-1"></i>Restored';
+                        statusCell.appendChild(badge);
+                        
+                        // Show success notification
+                        showToast(data.message, 'warning');
+                    } else {
+                        showToast('Error restoring file', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error communicating with server', 'danger');
+                });
             });
         });
     });
