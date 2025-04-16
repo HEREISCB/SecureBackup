@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}SecureBackup - Modern File Backup System{% endblock %}
+
+{% block content %}
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="fade-in">Secure Your Files with Smart Backups</h1>
+                    <p class="fade-in">A modern, reliable backup system with version history and secure file storage. Never lose important data again.</p>
+                    <div class="fade-in">
+                        <a href="{{ url_for('register') }}" class="btn btn-light btn-lg me-3">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
+                    </div>
+                </div>
+                <div class="col-lg-6 d-none d-lg-block text-center">
+                    <!-- SVG Graphic Placeholder -->
+                    <svg width="400" height="300" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg" class="mt-4 fade-in">
+                        <rect x="50" y="50" width="300" height="200" rx="10" fill="#fff" opacity="0.1"/>
+                        <circle cx="120" cy="100" r="30" fill="#fff" opacity="0.2"/>
+                        <rect x="170" y="85" width="150" height="10" rx="5" fill="#fff" opacity="0.3"/>
+                        <rect x="170" y="105" width="100" height="10" rx="5" fill="#fff" opacity="0.3"/>
+                        <rect x="80" y="160" width="240" height="60" rx="8" fill="#fff" opacity="0.15"/>
+                        <path d="M100 190 L120 170 L140 190 L160 160 L180 180 L200 165 L220 175 L240 160 L260 190" stroke="#fff" stroke-width="3" opacity="0.6"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features py-5">
+        <div class="container">
+            <div class="text-center mb-5">
+                <h2 class="display-5 fw-bold">Why Choose SecureBackup?</h2>
+                <p class="text-muted">Designed with security and convenience in mind.</p>
+            </div>
+            
+            <div class="row g-4">
+                <!-- Feature 1 -->
+                <div class="col-md-4">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                        <h3>Version History</h3>
+                        <p>Keep track of all changes to your files with comprehensive version history. Restore previous versions with a single click.</p>
+                    </div>
+                </div>
+                
+                <!-- Feature 2 -->
+                <div class="col-md-4">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>Secure Storage</h3>
+                        <p>Your files are stored securely with advanced protection mechanisms ensuring your data remains private.</p>
+                    </div>
+                </div>
+                
+                <!-- Feature 3 -->
+                <div class="col-md-4">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-sync-alt"></i>
+                        </div>
+                        <h3>Easy Restore</h3>
+                        <p>Accidentally deleted or modified a file? Restore it to any previous version with our intuitive interface.</p>
+                    </div>
+                </div>
+                
+                <!-- Feature 4 -->
+                <div class="col-md-4">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <h3>Quick Access</h3>
+                        <p>Access your files from anywhere with a streamlined, fast interface optimized for all devices.</p>
+                    </div>
+                </div>
+                
+                <!-- Feature 5 -->
+                <div class="col-md-4">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h3>User Authentication</h3>
+                        <p>Secure login system ensures only you have access to your sensitive files and backups.</p>
+                    </div>
+                </div>
+                
+                <!-- Feature 6 -->
+                <div class="col-md-4">
+                    <div class="feature-card fade-in">
+                        <div class="feature-icon">
+                            <i class="fas fa-mobile-alt"></i>
+                        </div>
+                        <h3>Responsive Design</h3>
+                        <p>A beautiful, modern interface that works perfectly on desktops, tablets, and mobile devices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="bg-dark text-white py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-8 mx-auto text-center">
+                    <h2 class="fade-in">Ready to Start Backing Up?</h2>
+                    <p class="lead fade-in">Join thousands of users who trust SecureBackup with their important files.</p>
+                    <div class="mt-4 fade-in">
+                        <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-2">
+                            Get Started Now
+                        </a>
+                        <a href="{{ url_for('login') }}" class="btn btn-outline-light btn-lg">
+                            Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SecureBackup{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="dashboard-header">
+        <div>
+            <h1 class="mb-3 fade-in">
+                <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+            </h1>
+            <p class="text-muted fade-in">Manage and organize your files</p>
+        </div>
+        <div class="d-flex flex-column flex-md-row gap-2">
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="fas fa-cloud-upload-alt me-2"></i>Upload Files
+            </button>
+        </div>
+    </div>
+    
+    <!-- Search and Sort Controls -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="text" id="file-search" class="form-control" placeholder="Search files...">
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-sort"></i></span>
+                <select id="sort-files" class="form-select">
+                    <option value="date-desc">Latest First</option>
+                    <option value="date-asc">Oldest First</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="size-desc">Size (Largest)</option>
+                    <option value="size-asc">Size (Smallest)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Files List -->
+    <div class="files-container fade-in">
+        <!-- If there are files -->
+        {% if files %}
+            {% for file in files %}
+                <div class="file-card" data-date="{{ file.updated_at }}" data-size="{{ file.size }}">
+                    <div class="file-icon">
+                        {% if file.content_type.startswith('image/') %}
+                            <i class="fas fa-file-image"></i>
+                        {% elif file.content_type.startswith('application/pdf') %}
+                            <i class="fas fa-file-pdf"></i>
+                        {% elif file.content_type.startswith('text/') %}
+                            <i class="fas fa-file-alt"></i>
+                        {% elif file.content_type.startswith('application/msword') or file.content_type.startswith('application/vnd.openxmlformats-officedocument.wordprocessingml') %}
+                            <i class="fas fa-file-word"></i>
+                        {% elif file.content_type.startswith('application/vnd.ms-excel') or file.content_type.startswith('application/vnd.openxmlformats-officedocument.spreadsheetml') %}
+                            <i class="fas fa-file-excel"></i>
+                        {% else %}
+                            <i class="fas fa-file"></i>
+                        {% endif %}
+                    </div>
+                    <div class="file-info">
+                        <h5 class="file-name mb-1">{{ file.original_filename }}</h5>
+                        <div class="d-flex align-items-center text-muted small">
+                            <span class="me-3">
+                                <i class="fas fa-clock me-1"></i>
+                                <span>{{ file.updated_at.strftime('%b %d, %Y %H:%M') }}</span>
+                            </span>
+                            <span class="file-size" data-size="{{ file.size }}">
+                                <i class="fas fa-weight me-1"></i>
+                                <!-- Size will be formatted by JS -->
+                                {{ file.size }} bytes
+                            </span>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-download"></i>
+                        </a>
+                        <a href="{{ url_for('file_history', file_id=file.id) }}" class="btn btn-sm btn-outline-info">
+                            <i class="fas fa-history"></i>
+                        </a>
+                        <button class="btn btn-sm btn-outline-warning rename-btn" 
+                                data-file-id="{{ file.id }}" 
+                                data-file-name="{{ file.original_filename }}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#renameModal">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger delete-btn"
+                                    data-file-name="{{ file.original_filename }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <!-- Empty state -->
+            <div class="empty-state fade-in">
+                <svg width="200" height="150" viewBox="0 0 200 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="50" y="20" width="100" height="120" rx="8" fill="#f0f0f0"/>
+                    <circle cx="100" cy="60" r="20" fill="#e0e0e0"/>
+                    <rect x="75" y="90" width="50" height="8" rx="4" fill="#e0e0e0"/>
+                    <rect x="85" y="105" width="30" height="8" rx="4" fill="#e0e0e0"/>
+                </svg>
+                <h3>No files yet</h3>
+                <p class="text-muted">Upload your first file to get started with backup and versioning.</p>
+                <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                    <i class="fas fa-cloud-upload-alt me-2"></i>Upload Now
+                </button>
+            </div>
+        {% endif %}
+        
+        <!-- Empty search results state (hidden by default) -->
+        <div class="empty-search-state fade-in" style="display: none; text-align: center; padding: 3rem;">
+            <i class="fas fa-search fa-3x mb-3" style="color: #ccc;"></i>
+            <h3>No matching files</h3>
+            <p class="text-muted">Try another search term or clear your search.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Upload Files</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{{ url_for('upload_file') }}" enctype="multipart/form-data" id="upload-form">
+                    {{ upload_form.hidden_tag() }}
+                    
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select a file to upload</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-file"></i></span>
+                            {{ upload_form.file(class="form-control") }}
+                        </div>
+                        <div class="form-text">
+                            Allowed file types: .txt, .pdf, .doc, .docx, .xls, .xlsx, .jpg, .jpeg, .png, .gif
+                        </div>
+                        {% if upload_form.file.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in upload_form.file.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ upload_form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rename Modal -->
+<div class="modal fade" id="renameModal" tabindex="-1" aria-labelledby="renameModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="renameModalLabel">Rename File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post" action="{{ url_for('rename_file', file_id=0) }}" id="rename-form">
+                    {{ rename_form.hidden_tag() }}
+                    <input type="hidden" id="rename-file-id" name="file_id" value="">
+                    
+                    <div class="mb-3">
+                        <label for="filename" class="form-label">New Filename</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-file-signature"></i></span>
+                            {{ rename_form.filename(class="form-control") }}
+                        </div>
+                        {% if rename_form.filename.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in rename_form.filename.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        {{ rename_form.submit(class="btn btn-primary") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update the action URL of the rename form when modal is shown
+    document.getElementById('renameModal').addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const fileId = button.getAttribute('data-file-id');
+        const fileName = button.getAttribute('data-file-name');
+        
+        const form = document.getElementById('rename-form');
+        form.action = "{{ url_for('rename_file', file_id='') }}" + fileId;
+        
+        const fileIdInput = document.getElementById('rename-file-id');
+        fileIdInput.value = fileId;
+        
+        const filenameInput = document.getElementById('filename');
+        filenameInput.value = fileName;
+    });
+</script>
+{% endblock %}

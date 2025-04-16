@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}File History - {{ file.original_filename }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary mb-3">
+                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+            </a>
+            
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h1 class="mb-0 fade-in">File History</h1>
+                <a href="{{ url_for('download_file', file_id=file.id) }}" class="btn btn-primary">
+                    <i class="fas fa-download me-2"></i>Download Latest
+                </a>
+            </div>
+            
+            <div class="file-details p-3 bg-light rounded mb-4 fade-in">
+                <div class="d-flex align-items-center">
+                    <div class="file-icon me-3">
+                        {% if file.content_type.startswith('image/') %}
+                            <i class="fas fa-file-image fa-2x"></i>
+                        {% elif file.content_type.startswith('application/pdf') %}
+                            <i class="fas fa-file-pdf fa-2x"></i>
+                        {% elif file.content_type.startswith('text/') %}
+                            <i class="fas fa-file-alt fa-2x"></i>
+                        {% elif file.content_type.startswith('application/msword') or file.content_type.startswith('application/vnd.openxmlformats-officedocument.wordprocessingml') %}
+                            <i class="fas fa-file-word fa-2x"></i>
+                        {% elif file.content_type.startswith('application/vnd.ms-excel') or file.content_type.startswith('application/vnd.openxmlformats-officedocument.spreadsheetml') %}
+                            <i class="fas fa-file-excel fa-2x"></i>
+                        {% else %}
+                            <i class="fas fa-file fa-2x"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <h4 class="mb-1">{{ file.original_filename }}</h4>
+                        <div class="d-flex align-items-center text-muted small">
+                            <span class="me-3">
+                                <i class="fas fa-clock me-1"></i>
+                                <span>Created: {{ file.created_at.strftime('%b %d, %Y %H:%M') }}</span>
+                            </span>
+                            <span class="me-3">
+                                <i class="fas fa-sync-alt me-1"></i>
+                                <span>Last Updated: {{ file.updated_at.strftime('%b %d, %Y %H:%M') }}</span>
+                            </span>
+                            <span class="file-size" data-size="{{ file.size }}">
+                                <i class="fas fa-weight me-1"></i>
+                                <!-- Size will be formatted by JS -->
+                                {{ file.size }} bytes
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <h3 class="mb-3 fade-in">Version History</h3>
+    
+    <div class="version-history fade-in">
+        {% if versions %}
+            {% for version in versions %}
+                <div class="version-card">
+                    <div class="version-indicator {% if version.is_current %}current-version{% endif %}">
+                        {{ version.version_number }}
+                    </div>
+                    <div class="version-info flex-grow-1">
+                        <h5 class="mb-1">
+                            {% if version.is_current %}
+                                <span class="badge bg-success">Current Version</span>
+                            {% endif %}
+                            Version {{ version.version_number }}
+                        </h5>
+                        <div class="d-flex align-items-center text-muted small">
+                            <span class="me-3">
+                                <i class="fas fa-clock me-1"></i>
+                                <span>{{ version.created_at.strftime('%b %d, %Y %H:%M') }}</span>
+                            </span>
+                            <span class="file-size" data-size="{{ version.size }}">
+                                <i class="fas fa-weight me-1"></i>
+                                <!-- Size will be formatted by JS -->
+                                {{ version.size }} bytes
+                            </span>
+                        </div>
+                    </div>
+                    <div class="version-actions">
+                        <a href="{{ url_for('download_version', version_id=version.id) }}" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="fas fa-download me-1"></i>Download
+                        </a>
+                        {% if not version.is_current %}
+                            <form action="{{ url_for('restore_version', version_id=version.id) }}" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-outline-success restore-version-btn"
+                                        data-version-number="{{ version.version_number }}">
+                                    <i class="fas fa-undo me-1"></i>Restore
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                No version history available for this file.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
