@@ -72,10 +72,11 @@
                     <table class="table table-hover mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th style="width: 40%;">Name</th>
-                                <th style="width: 15%;">Size</th>
+                                <th style="width: 35%;">Name</th>
+                                <th style="width: 10%;">Size</th>
                                 <th style="width: 15%;">Type</th>
                                 <th style="width: 15%;">Updated</th>
+                                <th style="width: 10%;">Status</th>
                                 <th style="width: 15%;">Actions</th>
                             </tr>
                         </thead>
@@ -115,24 +116,34 @@
                                         {% endif %}
                                     </td>
                                     <td>{{ file.updated_at.strftime('%b %d, %Y') }}</td>
+                                    <td class="file-status" id="status-{{ file.id }}">
+                                        <!-- Status will be updated dynamically with JavaScript -->
+                                    </td>
                                     <td>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-light" type="button" id="dropdownMenuButton{{ file.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                                <i class="fas fa-ellipsis-v"></i>
+                                        <div class="d-flex">
+                                            <button class="btn btn-sm btn-primary me-2 restore-file-btn" 
+                                                    data-file-id="{{ file.id }}" 
+                                                    title="Restore File">
+                                                <i class="fas fa-undo"></i>
                                             </button>
-                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ file.id }}">
-                                                <li><a class="dropdown-item" href="{{ url_for('download_file', file_id=file.id) }}"><i class="fas fa-download me-2"></i>Download</a></li>
-                                                <li><a class="dropdown-item" href="{{ url_for('file_history', file_id=file.id) }}"><i class="fas fa-history me-2"></i>History</a></li>
-                                                <li><button class="dropdown-item rename-btn" data-file-id="{{ file.id }}" data-file-name="{{ file.original_filename }}" data-bs-toggle="modal" data-bs-target="#renameModal"><i class="fas fa-edit me-2"></i>Rename</button></li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li>
-                                                    <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post" class="d-inline">
-                                                        <button type="submit" class="dropdown-item text-danger delete-btn" data-file-name="{{ file.original_filename }}">
-                                                            <i class="fas fa-trash me-2"></i>Delete
-                                                        </button>
-                                                    </form>
-                                                </li>
-                                            </ul>
+                                            <div class="dropdown">
+                                                <button class="btn btn-sm btn-light" type="button" id="dropdownMenuButton{{ file.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fas fa-ellipsis-v"></i>
+                                                </button>
+                                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton{{ file.id }}">
+                                                    <li><a class="dropdown-item" href="{{ url_for('download_file', file_id=file.id) }}"><i class="fas fa-download me-2"></i>Download</a></li>
+                                                    <li><a class="dropdown-item" href="{{ url_for('file_history', file_id=file.id) }}"><i class="fas fa-history me-2"></i>History</a></li>
+                                                    <li><button class="dropdown-item rename-btn" data-file-id="{{ file.id }}" data-file-name="{{ file.original_filename }}" data-bs-toggle="modal" data-bs-target="#renameModal"><i class="fas fa-edit me-2"></i>Rename</button></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    <li>
+                                                        <form action="{{ url_for('delete_file', file_id=file.id) }}" method="post" class="d-inline">
+                                                            <button type="submit" class="dropdown-item text-danger delete-btn" data-file-name="{{ file.original_filename }}">
+                                                                <i class="fas fa-trash me-2"></i>Delete
+                                                            </button>
+                                                        </form>
+                                                    </li>
+                                                </ul>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -312,6 +323,33 @@
                 }
             });
         });
+        
+        // Restore file button handler
+        document.querySelectorAll('.restore-file-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const fileId = this.getAttribute('data-file-id');
+                const statusCell = document.getElementById(`status-${fileId}`);
+                
+                // Create or update the status badge
+                let badge = statusCell.querySelector('.badge.bg-warning');
+                if (badge) {
+                    // If badge already exists, just animate it again
+                    badge.classList.remove('status-animation');
+                    void badge.offsetWidth; // Force reflow
+                    badge.classList.add('status-animation');
+                } else {
+                    // Create new badge
+                    badge = document.createElement('span');
+                    badge.className = 'badge bg-warning status-animation';
+                    badge.innerHTML = '<i class="fas fa-undo me-1"></i>Restored';
+                    statusCell.innerHTML = '';
+                    statusCell.appendChild(badge);
+                }
+                
+                // Show success notification
+                showToast('File marked as restored', 'warning');
+            });
+        });
     });
     
     // Format bytes to human-readable format
@@ -325,6 +363,46 @@
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         
         return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+    
+    // Toast notification function
+    function showToast(message, type = 'info') {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+            document.body.appendChild(toastContainer);
+        }
+        
+        // Create the toast
+        const toastElement = document.createElement('div');
+        toastElement.className = `toast align-items-center text-white bg-${type} border-0`;
+        toastElement.setAttribute('role', 'alert');
+        toastElement.setAttribute('aria-live', 'assertive');
+        toastElement.setAttribute('aria-atomic', 'true');
+        
+        // Toast content
+        toastElement.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        // Add to container
+        toastContainer.appendChild(toastElement);
+        
+        // Initialize and show the toast
+        const toast = new bootstrap.Toast(toastElement, { delay: 3000 });
+        toast.show();
+        
+        // Remove toast after it's hidden
+        toastElement.addEventListener('hidden.bs.toast', function() {
+            toastElement.remove();
+        });
     }
 </script>
 {% endblock %}
