@@ -138,6 +138,49 @@ function initializeDeleteConfirmation() {
     
     deleteButtons.forEach(button => {
         button.addEventListener('click', function(e) {
+            // For file version deletion with dynamic status update
+            if (this.hasAttribute('data-version-id')) {
+                e.preventDefault();
+                const versionId = this.getAttribute('data-version-id');
+                const versionNumber = this.getAttribute('data-version-number');
+                
+                // Confirm deletion
+                if (confirm(`Are you sure you want to mark Version ${versionNumber} as deleted?`)) {
+                    // Find the status element for this version
+                    const statusElement = document.querySelector(`#version-${versionId} .version-status`);
+                    if (statusElement) {
+                        // Create or update the status badge
+                        const existingBadge = statusElement.querySelector('.badge.bg-danger');
+                        if (existingBadge) {
+                            // If badge already exists, just animate it again
+                            existingBadge.classList.remove('status-animation');
+                            // Trigger reflow
+                            void existingBadge.offsetWidth;
+                            existingBadge.classList.add('status-animation');
+                        } else {
+                            // Remove any existing badges except Current Version
+                            const oldBadges = statusElement.querySelectorAll('.badge');
+                            oldBadges.forEach(badge => {
+                                if (!badge.classList.contains('bg-success')) {
+                                    badge.remove();
+                                }
+                            });
+                            
+                            // Create new badge
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-danger me-2 status-animation';
+                            badge.innerHTML = '<i class="fas fa-trash me-1"></i>Deleted';
+                            statusElement.appendChild(badge);
+                        }
+                        
+                        // Show success notification
+                        showToast(`Version ${versionNumber} marked as deleted`, 'danger');
+                    }
+                }
+                return;
+            }
+            
+            // For regular file deletion
             const fileName = this.getAttribute('data-file-name');
             if (!confirm(`Are you sure you want to delete "${fileName}"?`)) {
                 e.preventDefault();
@@ -150,13 +193,54 @@ function initializeDeleteConfirmation() {
  * Initializes confirmation dialogs for version restoration
  */
 function initializeRestoreVersionConfirmation() {
-    const restoreButtons = document.querySelectorAll('.restore-version-btn');
-    
-    restoreButtons.forEach(button => {
+    // Handle existing backend restore buttons
+    const restoreVersionButtons = document.querySelectorAll('.restore-version-btn');
+    restoreVersionButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             const versionNumber = this.getAttribute('data-version-number');
             if (!confirm(`Are you sure you want to restore version ${versionNumber} as the current version?`)) {
                 e.preventDefault();
+            }
+        });
+    });
+    
+    // Handle our new client-side restore buttons for status updates
+    const restoreButtons = document.querySelectorAll('.restore-btn');
+    restoreButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const versionId = this.getAttribute('data-version-id');
+            const versionNumber = this.getAttribute('data-version-number');
+            
+            // Find the status element for this version
+            const statusElement = document.querySelector(`#version-${versionId} .version-status`);
+            if (statusElement) {
+                // Create or update the status badge
+                const existingBadge = statusElement.querySelector('.badge.bg-warning');
+                if (existingBadge) {
+                    // If badge already exists, just animate it again
+                    existingBadge.classList.remove('status-animation');
+                    // Trigger reflow
+                    void existingBadge.offsetWidth;
+                    existingBadge.classList.add('status-animation');
+                } else {
+                    // Remove any existing badges except Current Version
+                    const oldBadges = statusElement.querySelectorAll('.badge');
+                    oldBadges.forEach(badge => {
+                        if (!badge.classList.contains('bg-success')) {
+                            badge.remove();
+                        }
+                    });
+                    
+                    // Create new badge
+                    const badge = document.createElement('span');
+                    badge.className = 'badge bg-warning me-2 status-animation';
+                    badge.innerHTML = '<i class="fas fa-undo me-1"></i>Restored';
+                    statusElement.appendChild(badge);
+                }
+                
+                // Show success notification
+                showToast(`Version ${versionNumber} marked as restored`, 'warning');
             }
         });
     });
