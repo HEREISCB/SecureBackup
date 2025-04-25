@@ -5,28 +5,27 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from flask_login import LoginManager
+from flask_migrate import Migrate  # Import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-
-# Configure logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Create database base class
+
 class Base(DeclarativeBase):
     pass
 
 
-# Initialize extensions
+
 db = SQLAlchemy(model_class=Base)
 login_manager = LoginManager()
 
-# Create the app
+
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
-app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  # Needed for url_for to generate with https
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)  
 
-# Configure the database
+
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///backup_system.db")
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
     "pool_recycle": 300,
@@ -34,36 +33,37 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Set upload folder for files
+
 app.config["UPLOAD_FOLDER"] = os.path.join(os.getcwd(), "file_storage")
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB max upload size
+app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  
 
-# Backup configuration
+
 app.config["BACKUP_TEMP_DIR"] = os.path.join(os.getcwd(), "backup_temp")
-app.config["DEFAULT_BACKUP_INTERVAL"] = 60  # Default backup interval in minutes
-app.config["ALLOWED_BACKUP_INTERVALS"] = [15, 30, 60, 360, 720, 1440]  # 15min, 30min, 1hr, 6hrs, 12hrs, 24hrs
+app.config["DEFAULT_BACKUP_INTERVAL"] = 60 
+app.config["ALLOWED_BACKUP_INTERVALS"] = [15, 30, 60, 360, 720, 1440]  
 app.config["MAX_MONITORED_FOLDERS_PER_USER"] = 10
-app.config["MONITOR_ENABLED"] = True  # Can be toggled to disable background monitoring
+app.config["MONITOR_ENABLED"] = True  
 
-# Ensure necessary folders exist
+
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 os.makedirs(app.config["BACKUP_TEMP_DIR"], exist_ok=True)
 
-# Initialize extensions with app
+
 db.init_app(app)
 login_manager.init_app(app)
 login_manager.login_view = "login"
 login_manager.login_message_category = "info"
 
-# Import models and routes after initializing app to avoid circular imports
+migrate = Migrate(app, db) # Initialize Migrate
+
+
 with app.app_context():
-    # Import models
+
     from models import User, File, FileVersion, MonitoredFolder, BackupJob, BackupLog
-    
-    # Create database tables
-    db.create_all()
-    
-    # Import and register routes
+
+
+    # db.create_all() # Remove this line, migrations will handle it
+
     from routes import register_routes
     register_routes(app)
     

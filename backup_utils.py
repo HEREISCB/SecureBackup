@@ -37,7 +37,7 @@ def scan_folder(folder_id):
         logger.error(f"Folder path '{folder.path}' does not exist")
         return []
     
-    # Get all files in the folder
+    
     file_paths = []
     for root, _, files in os.walk(folder.path):
         for file in files:
@@ -53,7 +53,7 @@ def should_backup_file(folder_id, file_path):
     if not folder:
         return False
     
-    # Get file modification time
+    
     try:
         mtime = os.path.getmtime(file_path)
         mod_time = datetime.fromtimestamp(mtime)
@@ -61,30 +61,30 @@ def should_backup_file(folder_id, file_path):
         logger.error(f"Error getting modification time for {file_path}: {e}")
         return False
     
-    # Calculate relative path within the monitored folder
+    
     rel_path = os.path.relpath(file_path, folder.path)
     
-    # Check if this file already exists in the database
+    
     existing_file = File.query.filter_by(
         source_folder_id=folder.id,
         source_path=rel_path,
         is_deleted=False
     ).first()
     
-    # If file doesn't exist in our database, it should be backed up
+    
     if not existing_file:
         return True
     
-    # If file exists, check if it has been modified since last backup
+    
     latest_version = existing_file.get_latest_version()
     if not latest_version:
         return True
     
-    # If file modification time is newer than our last backup, it should be backed up
+    
     if mod_time > latest_version.created_at:
         return True
     
-    # Check file checksum if mod time is the same
+
     if mod_time == latest_version.created_at and latest_version.checksum:
         current_checksum = calculate_file_hash(file_path)
         if current_checksum != latest_version.checksum:
@@ -120,16 +120,16 @@ def backup_file(file_path, folder_id, job_id=None):
         logger.error(f"File {file_path} does not exist")
         return None
     
-    # Secure filename and create unique filename for storage
+    
     original_filename = os.path.basename(file_path)
     safe_original_filename = secure_filename(original_filename)
     file_extension = os.path.splitext(safe_original_filename)[1].lower()
     unique_filename = f"{uuid.uuid4().hex}{file_extension}"
     
-    # Calculate relative path within the monitored folder
+    
     rel_path = os.path.relpath(file_path, folder.path)
     
-    # Get file information
+    
     try:
         file_size = os.path.getsize(file_path)
         file_hash = calculate_file_hash(file_path)
@@ -138,7 +138,7 @@ def backup_file(file_path, folder_id, job_id=None):
         logger.error(f"Error accessing file {file_path}: {e}")
         return None
     
-    # Check if this file already exists in the database
+    
     existing_file = File.query.filter_by(
         source_folder_id=folder.id,
         source_path=rel_path,
@@ -147,17 +147,16 @@ def backup_file(file_path, folder_id, job_id=None):
     
     new_version = None
     
-    # File exists in the system, add a new version
+    
     if existing_file:
-        # Get the latest version number and increment
+    
         latest_version = FileVersion.query.filter_by(file_id=existing_file.id).order_by(FileVersion.version_number.desc()).first()
         version_number = (latest_version.version_number + 1) if latest_version else 1
         
-        # Update all previous versions to not be current
+        
         for version in existing_file.versions:
             version.is_current = False
         
-        # Copy file to storage location
         storage_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         try:
             shutil.copy2(file_path, storage_path)
@@ -165,7 +164,6 @@ def backup_file(file_path, folder_id, job_id=None):
             logger.error(f"Error copying file {file_path} to {storage_path}: {e}")
             return None
         
-        # Create new version
         new_version = FileVersion(
             file_id=existing_file.id,
             version_number=version_number,
@@ -176,17 +174,15 @@ def backup_file(file_path, folder_id, job_id=None):
             change_reason="Automatic backup - file modified"
         )
         
-        # Update file metadata
         existing_file.size = file_size
         existing_file.updated_at = datetime.utcnow()
         
-        # Add and commit changes
+       
         db.session.add(new_version)
         db.session.commit()
         
         logger.info(f"Created new version {version_number} for file {rel_path}")
         
-        # Create backup log
         if job_id:
             log = BackupLog(
                 message=f"Updated file: {rel_path} (version {version_number})",
@@ -200,9 +196,7 @@ def backup_file(file_path, folder_id, job_id=None):
         
         return existing_file
     
-    # File doesn't exist in the system, create a new file entry
     else:
-        # Copy file to storage location
         storage_path = os.path.join(current_app.config['UPLOAD_FOLDER'], unique_filename)
         try:
             shutil.copy2(file_path, storage_path)
@@ -210,7 +204,7 @@ def backup_file(file_path, folder_id, job_id=None):
             logger.error(f"Error copying file {file_path} to {storage_path}: {e}")
             return None
         
-        # Create file record
+       
         new_file = File(
             filename=unique_filename,
             original_filename=safe_original_filename,
@@ -223,9 +217,8 @@ def backup_file(file_path, folder_id, job_id=None):
         )
         
         db.session.add(new_file)
-        db.session.flush()  # To get the file ID
+        db.session.flush()  
         
-        # Create first version
         new_version = FileVersion(
             file_id=new_file.id,
             version_number=1,
@@ -241,7 +234,7 @@ def backup_file(file_path, folder_id, job_id=None):
         
         logger.info(f"Created new file backup for {rel_path}")
         
-        # Create backup log
+       
         if job_id:
             log = BackupLog(
                 message=f"New file: {rel_path}",
@@ -262,14 +255,13 @@ def run_backup_job(job_id):
         logger.error(f"Job with ID {job_id} not found")
         return False
     
-    # Update job status
     job.status = "running"
     db.session.commit()
     
     try:
         start_time = time.time()
         
-        # Get all active folders for the user
+       
         folders = MonitoredFolder.query.filter_by(
             user_id=job.user_id,
             is_active=True
@@ -283,7 +275,7 @@ def run_backup_job(job_id):
             )
             db.session.add(log)
             
-            # Update job status
+         
             job.status = "completed"
             db.session.commit()
             
@@ -293,7 +285,7 @@ def run_backup_job(job_id):
         total_files = 0
         backed_up_files = 0
         
-        # Process each folder
+    
         for folder in folders:
             folder.last_scan_at = datetime.utcnow()
             db.session.commit()
@@ -307,21 +299,21 @@ def run_backup_job(job_id):
             db.session.add(log)
             db.session.commit()
             
-            # Get all files in the folder
+        
             file_paths = scan_folder(folder.id)
             total_files += len(file_paths)
             
-            # Check which files need to be backed up
+            
             for file_path in file_paths:
                 if should_backup_file(folder.id, file_path):
                     result = backup_file(file_path, folder.id, job.id)
                     if result:
                         backed_up_files += 1
         
-        # Calculate duration
+       
         duration = time.time() - start_time
         
-        # Create summary log
+        
         log = BackupLog(
             message=f"Backup completed: {backed_up_files} files backed up out of {total_files} total files in {duration:.2f} seconds",
             level="info",
@@ -329,7 +321,7 @@ def run_backup_job(job_id):
         )
         db.session.add(log)
         
-        # Update job status
+       
         job.status = "completed"
         db.session.commit()
         
@@ -339,7 +331,6 @@ def run_backup_job(job_id):
     except Exception as e:
         logger.exception(f"Error running backup job {job.id}: {e}")
         
-        # Create error log
         log = BackupLog(
             message=f"Backup failed: {str(e)}",
             level="error",
@@ -347,7 +338,6 @@ def run_backup_job(job_id):
         )
         db.session.add(log)
         
-        # Update job status
         job.status = "failed"
         db.session.commit()
         
