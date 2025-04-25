@@ -2,9 +2,8 @@ import os
 import logging
 from datetime import datetime
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase
-from flask_login import LoginManager
+# Removed SQLAlchemy and LoginManager imports, they are in extensions
+from extensions import db, login_manager # Import from extensions
 from flask_migrate import Migrate  # Import Migrate
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -12,14 +11,9 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 
-class Base(DeclarativeBase):
-    pass
+# Removed Base class definition, it's in extensions
 
-
-
-db = SQLAlchemy(model_class=Base)
-login_manager = LoginManager()
-
+# Removed db and login_manager initializations, they are in extensions
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SESSION_SECRET", "dev-secret-key")
